@@ -9,7 +9,7 @@ function App() {
   const [count, setCount] = useState(0);
 
   return (
-    <div style={{ height: '500px', width: '500px' }} data-registry="plate">
+    <div className="h-full w-full" data-registry="plate">
       <PlateEditor />
     </div>
   );
