@@ -11,7 +11,7 @@ export default defineConfig({
     permission: ["activeTab", "scripting", "sidePanel", "storage", "tabs"]
   },
   runner: defineRunnerConfig({
-    disabled: true
+    disabled: false
   })
 
 });

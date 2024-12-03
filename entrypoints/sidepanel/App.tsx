@@ -2,13 +2,8 @@ import { useState } from 'react';
 import reactLogo from '@/assets/react.svg';
 import wxtLogo from '/wxt.svg';
 import './style.css';
-
 import { sendMessage } from '@/messaging/messaging';
-
-
 import { PlateEditor } from '@/components/editor/plate-editor';
-
-
 
 function App() {
   const [count, setCount] = useState(0);
