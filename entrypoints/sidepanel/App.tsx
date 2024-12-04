@@ -15,9 +15,9 @@ function App() {
 
   return (
     <div className="h-full w-full" data-registry="plate">
-      {/* <PlateEditor /> */}
+      <PlateEditor />
 
-      <button onClick={handleSendMessage}>Send Message</button>
+      {/* <button onClick={handleSendMessage}>Send Message</button> */}
     </div>
   );
 }
