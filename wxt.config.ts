@@ -8,7 +8,7 @@ export default defineConfig({
   extensionApi: 'chrome',
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    permission: ["activeTab", "scripting", "sidePanel", "storage", "tabs"]
+    permissions: ["activeTab", "scripting", "sidePanel", "storage", "tabs"]
   },
   runner: defineRunnerConfig({
     disabled: false
