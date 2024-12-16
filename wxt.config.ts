@@ -10,30 +10,10 @@ import commands from './modules/commands';
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   extensionApi: 'chrome',
-  manifest: () => ({
-    permissions: ["activeTab", "scripting", "sidePanel", "storage", "tabs", "commands"],
-    commands: {
-      "_execute_action": {
-        suggested_key: {
-          default: "Ctrl+Shift+U",
-          mac: "Command+Shift+U",
-          windows: "Ctrl+Shift+U",
-          linux: "Ctrl+Shift+U"
-        },
-        description: "Run \"foo\" on the current page."
-      },
-      "test-command": {
-        suggested_key: {
-          default: "Ctrl+Shift+Y",
-          mac: "Command+Shift+Y",
-          windows: "Ctrl+Shift+Y",
-          linux: "Ctrl+Shift+Y"
-        },
-        description: "Test command"
-      }
-    },
-    action: {}
-  }),
+  modules: ['@wxt-dev/module-react'],
+  manifest: {
+    permission: ["activeTab", "scripting", "sidePanel", "storage", "tabs"]
+  },
   runner: defineRunnerConfig({
     disabled: false,
   }),
