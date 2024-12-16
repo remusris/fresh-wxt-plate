@@ -10,6 +10,14 @@ export default defineBackground(() => {
 
   });
 
+  chrome.commands.onCommand.addListener((command) => {
+    console.log('Command executed:', command);
+
+    /* if (command === "_execute_action") {
+      console.log('Command executed:', command);
+    } */
+  });
+
 
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true})
 });

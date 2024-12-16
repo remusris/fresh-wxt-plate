@@ -34,7 +34,7 @@ export default defineContentScript({
     ctx.addEventListener(document, "mousemove", activityDetected);
     ctx.addEventListener(document, "keydown", activityDetected);    
     ctx.addEventListener(window, "blur", activityDetected);
-    ctx.addEventListener(document, "visibilitychange", activityDetected);
+    // ctx.addEventListener(document, "visibilitychange", activityDetected);
 
     /* // Use regular DOM event listener for visibilitychange
     const visibilityHandler = (event: Event) => {
