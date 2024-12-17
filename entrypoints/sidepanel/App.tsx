@@ -1,150 +1,53 @@
+    import { ForceGraph2D, ForceGraph3D, ForceGraphVR, ForceGraphAR } from 'react-force-graph';
 
-
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-    ReactFlow,
-    useNodesState,
-    useEdgesState,
-    addEdge,
-    MiniMap,
-    Controls,
-} from '@xyflow/react';
-
-import '@xyflow/react/dist/style.css';
-
-
-import ColorSelectorNode from './ColorSelectorNode';
-
-const initBgColor = '#c9f1dd';
-
-const snapGrid = [20, 20];
-const nodeTypes = {
-    selectorNode: ColorSelectorNode,
-};
-
-const defaultViewport = { x: 0, y: 0, zoom: 1.5 };
-
-const CustomNodeFlow = () => {
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const [bgColor, setBgColor] = useState(initBgColor);
-
-    useEffect(() => {
-        const onChange = (event) => {
-            setNodes((nds) =>
-                nds.map((node) => {
-                    if (node.id !== '2') {
-                        return node;
-                    }
-
-                    const color = event.target.value;
-
-                    setBgColor(color);
-
-                    return {
-                        ...node,
-                        data: {
-                            ...node.data,
-                            color,
-                        },
-                    };
-                }),
-            );
-        };
-
-        setNodes([
-            {
-                id: '1',
-                type: 'input',
-                data: { label: 'An input node' },
-                position: { x: 0, y: 50 },
-                sourcePosition: 'right',
+    const graphData = {
+        nodes: [ 
+            { 
+            id: "id1",
+            name: "name1",
+            val: 1 
             },
-            {
-                id: '2',
-                type: 'selectorNode',
-                data: { onChange: onChange, color: initBgColor },
-                position: { x: 300, y: 50 },
+            { 
+            id: "id2",
+            name: "name2",
+            val: 10 
             },
+            
+        ],
+        links: [
             {
-                id: '3',
-                type: 'output',
-                data: { label: 'Output A' },
-                position: { x: 650, y: 25 },
-                targetPosition: 'left',
-            },
-            {
-                id: '4',
-                type: 'output',
-                data: { label: 'Output B' },
-                position: { x: 650, y: 100 },
-                targetPosition: 'left',
-            },
-        ]);
+                source: "id1",
+                target: "id2"
+            }
+        ]
+    }
 
-        setEdges([
-            {
-                id: 'e1-2',
-                source: '1',
-                target: '2',
-                animated: true,
-            },
-            {
-                id: 'e2a-3',
-                source: '2',
-                target: '3',
-                sourceHandle: 'a',
-                animated: true,
-            },
-            {
-                id: 'e2b-4',
-                source: '2',
-                target: '4',
-                sourceHandle: 'b',
-                animated: true,
-            },
-        ]);
-    }, []);
 
-    const onConnect = useCallback(
-        (params) =>
-            setEdges((eds) =>
-                addEdge({ ...params, animated: true }, eds),
-            ),
-        [],
-    );
-    return (
-        <div className="h-screen w-screen">
-            <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                style={{ background: bgColor }}
-                nodeTypes={nodeTypes}
-                snapToGrid={true}
-                snapGrid={snapGrid}
-                defaultViewport={defaultViewport}
-                fitView
-                attributionPosition="bottom-left"
-            >
-                <MiniMap
-                    nodeStrokeColor={(n) => {
-                        if (n.type === 'input') return '#0041d0';
-                        if (n.type === 'selectorNode') return bgColor;
-                        if (n.type === 'output') return '#ff0072';
-                    }}
-                    nodeColor={(n) => {
-                        if (n.type === 'selectorNode') return bgColor;
-                        return '#fff';
+    const App = () => {
+        return (
+            <div className="h-full w-full">
+                <ForceGraph2D 
+                    graphData={graphData}
+                    nodeCanvasObject={(node, ctx, globalScale) => {
+                        const label = node.name;
+                        const fontSize = 12/globalScale;
+                        ctx.font = `${fontSize}px Sans-Serif`;
+                        
+                        // Draw node circle
+                        ctx.beginPath();
+                        ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI);
+                        ctx.fillStyle = '#4CAF50';
+                        ctx.fill();
+                        
+                        // Draw text label
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillStyle = 'black';
+                        ctx.fillText(label, node.x, node.y + 10);
                     }}
                 />
-                <Controls />
-            </ReactFlow>
-        </div>
+            </div>
+        )
+    }
 
-    );
-};
-
-export default CustomNodeFlow;
+    export default App;
