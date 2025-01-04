@@ -330,6 +330,7 @@ export default defineContentScript({
     async main(ctx) {
         let isActive = false;
         let currentOverlay: HTMLElement | null = null;
+        let activeSelection: HTMLElement | null = null; // Track active selection
         const stickyOverlays: Set<HTMLElement> = new Set();
         let toggleButton: HTMLButtonElement;
 
@@ -466,42 +467,42 @@ export default defineContentScript({
                 'top-left', 'top-right', 'bottom-left', 'bottom-right',
                 'top', 'right', 'bottom', 'left'
             ];
-        
+
             positions.forEach(pos => {
                 const handle = document.createElement('div');
                 handle.className = `resize-handle ${pos}`;
-                
+
                 handle.addEventListener('mousedown', (mouseDownEvent) => {
                     mouseDownEvent.stopPropagation();
                     mouseDownEvent.preventDefault();
-                    
+
                     // Temporarily disable selection functionality
                     const previousActiveState = isActive;
                     isActive = false;
-                    
+
                     // Add classes to prevent text selection
                     document.body.classList.add('disable-interactions');
                     overlay.classList.add('overlay-resizing');
-                    
+
                     const startX = mouseDownEvent.clientX;
                     const startY = mouseDownEvent.clientY;
                     const startRect = overlay.getBoundingClientRect();
-                    
+
                     const onMouseMove = (mouseMoveEvent: MouseEvent) => {
                         mouseMoveEvent.preventDefault();
                         mouseMoveEvent.stopPropagation();
-                        
+
                         // Request animation frame for smooth updates
                         requestAnimationFrame(() => {
                             const deltaX = mouseMoveEvent.clientX - startX;
                             const deltaY = mouseMoveEvent.clientY - startY;
-                            
+
                             let newLeft = startRect.left;
                             let newTop = startRect.top;
                             let newWidth = startRect.width;
                             let newHeight = startRect.height;
-                
-                            switch(pos) {
+
+                            switch (pos) {
                                 case 'top-left':
                                     newLeft += deltaX;
                                     newTop += deltaY;
@@ -537,7 +538,7 @@ export default defineContentScript({
                                     newWidth -= deltaX;
                                     break;
                             }
-                
+
                             // Apply minimum size constraints
                             if (newWidth >= 20 && newHeight >= 20) {
                                 overlay.style.left = `${newLeft}px`;
@@ -547,7 +548,7 @@ export default defineContentScript({
                             }
                         });
                     };
-                
+
                     const onMouseUp = () => {
                         document.removeEventListener('mousemove', onMouseMove);
                         document.removeEventListener('mouseup', onMouseUp);
@@ -557,17 +558,17 @@ export default defineContentScript({
                         // Restore previous active state
                         isActive = previousActiveState;
                     };
-                
+
                     document.addEventListener('mousemove', onMouseMove);
                     document.addEventListener('mouseup', onMouseUp);
                 });
-        
+
                 overlay.appendChild(handle);
             });
         };
 
         // Function to deactivate all overlays
-        const deactivateOverlays = () => {
+        /* const deactivateOverlays = () => {
             isActive = false;
             if (toggleButton) {
                 toggleButton.style.backgroundColor = '#4CAF50';
@@ -578,6 +579,21 @@ export default defineContentScript({
             }
             stickyOverlays.forEach(overlay => overlay.remove());
             stickyOverlays.clear();
+        }; */
+
+        const deactivateOverlays = () => {
+            isActive = false;
+            if (toggleButton) {
+                toggleButton.style.backgroundColor = '#4CAF50';
+            }
+            if (currentOverlay) {
+                currentOverlay.remove();
+                currentOverlay = null;
+            }
+            if (activeSelection) {
+                activeSelection.remove();
+                activeSelection = null;
+            }
         };
 
         // Create and mount the button using Shadow DOM
@@ -741,7 +757,7 @@ export default defineContentScript({
         });
 
         // Function to create an overlay for a target element
-        const createOverlay = (target: HTMLElement, isSticky: boolean = false): HTMLElement => {
+        /* const createOverlay = (target: HTMLElement, isSticky: boolean = false): HTMLElement => {
             const rect = target.getBoundingClientRect();
             const overlay = document.createElement('div');
             overlay.className = `hover-overlay${isSticky ? ' sticky-overlay' : ''}`;
@@ -791,6 +807,61 @@ export default defineContentScript({
             }
 
             return overlay;
+        }; */
+
+        const createOverlay = (target: HTMLElement, isSticky: boolean = false): HTMLElement => {
+            const rect = target.getBoundingClientRect();
+            const overlay = document.createElement('div');
+            overlay.className = `hover-overlay${isSticky ? ' sticky-overlay' : ''}`;
+
+            overlay.style.top = `${rect.top + window.scrollY}px`;
+            overlay.style.left = `${rect.left + window.scrollX}px`;
+            overlay.style.width = `${rect.width}px`;
+            overlay.style.height = `${rect.height}px`;
+
+            if (isSticky) {
+                // Remove any existing active selection before creating a new one
+                if (activeSelection) {
+                    activeSelection.remove();
+                }
+                activeSelection = overlay;
+
+                (overlay as any)._targetElement = target;
+                addResizeHandles(overlay);
+
+                const toolsContainer = document.createElement('div');
+                toolsContainer.className = 'tools-container';
+
+                const screenshotButton = document.createElement('button');
+                screenshotButton.className = 'screenshot-button';
+                screenshotButton.textContent = '📸 Screenshot';
+                screenshotButton.addEventListener('click', async (event) => {
+                    event.stopPropagation();
+                    await captureScreenPixels(target);
+                });
+
+                const removeButton = document.createElement('button');
+                removeButton.className = 'remove-button';
+                removeButton.textContent = '✕';
+                removeButton.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    overlay.remove();
+                    activeSelection = null; // Clear active selection when removed
+                });
+
+                toolsContainer.appendChild(screenshotButton);
+                toolsContainer.appendChild(removeButton);
+                overlay.appendChild(toolsContainer);
+            } else {
+                target.addEventListener('click', (event) => {
+                    if (!isActive || activeSelection) return; // Prevent new selection if one exists
+                    event.stopPropagation();
+                    const stickyOverlay = createOverlay(target, true);
+                    document.body.appendChild(stickyOverlay);
+                });
+            }
+
+            return overlay;
         };
 
         // Add mouseover event listener to the document
@@ -808,13 +879,26 @@ export default defineContentScript({
         });
 
         // Remove hover overlay when mouse leaves the element
-        ctx.addEventListener(document, 'mouseout', (event) => {
+        /* ctx.addEventListener(document, 'mouseout', (event) => {
             if (!isActive) return;
 
             const target = event.target as HTMLElement;
             if (shouldShowOverlay(target) && currentOverlay) {
                 currentOverlay.remove();
                 currentOverlay = null;
+            }
+        }); */
+
+        ctx.addEventListener(document, 'mouseover', (event) => {
+            if (!isActive || activeSelection) return; // Don't show hover overlay if there's an active selection
+
+            const target = event.target as HTMLElement;
+            if (shouldShowOverlay(target)) {
+                if (currentOverlay) {
+                    currentOverlay.remove();
+                }
+                currentOverlay = createOverlay(target);
+                document.body.appendChild(currentOverlay);
             }
         });
 
@@ -849,12 +933,12 @@ export default defineContentScript({
 
         ctx.addEventListener(document, 'click', (event) => {
             if (isActive) {
-              event.preventDefault();
+                event.preventDefault();
             }
-          }, { capture: true });
+        }, { capture: true });
 
         // Handle window resize
-        ctx.addEventListener(window, 'resize', () => {
+        /* ctx.addEventListener(window, 'resize', () => {
             if (currentOverlay) {
                 const hoveredElement = (currentOverlay as any)._targetElement;
                 if (hoveredElement) {
@@ -876,6 +960,19 @@ export default defineContentScript({
                     overlay.style.height = `${newRect.height}px`;
                 }
             });
+        }, { passive: true }); */
+
+        ctx.addEventListener(window, 'resize', () => {
+            if (activeSelection) {
+                const targetElement = (activeSelection as any)._targetElement;
+                if (targetElement) {
+                    const newRect = targetElement.getBoundingClientRect();
+                    activeSelection.style.top = `${newRect.top + window.scrollY}px`;
+                    activeSelection.style.left = `${newRect.left + window.scrollX}px`;
+                    activeSelection.style.width = `${newRect.width}px`;
+                    activeSelection.style.height = `${newRect.height}px`;
+                }
+            }
         }, { passive: true });
     },
 });

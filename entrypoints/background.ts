@@ -55,8 +55,36 @@ export default defineBackground(() => {
       console.log("error", error);
     },
   });
-  
+
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "captureElement") {
+        // Get the current active tab
+        chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+            try {
+                const tab = tabs[0];
+                if (!tab.id) return;
+
+                // Capture the visible tab
+                const screenshot = await chrome.tabs.captureVisibleTab(tab.windowId, {
+                    format: 'png'
+                });
+
+                // Send the screenshot data back to the content script
+                chrome.tabs.sendMessage(tab.id, {
+                    action: "processScreenshot",
+                    screenshot: screenshot,
+                    rect: request.rect
+                });
+            } catch (error) {
+                console.error('Failed to capture screenshot:', error);
+            }
+        });
+    }
+    // Return true to indicate we want to send a response asynchronously
+    return true;
+});
 
 
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true})
+
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
 });
